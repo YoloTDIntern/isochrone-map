@@ -67,8 +67,54 @@ async function addGeoJson(file) {
         console.error(`Error loading GeoJSON file: ${file}, Status: ${response.status}`);
         return;
     }
-    const data = await response.json();
+    let data = await response.json();
     console.log("data: ", data);
+
+    // If data is in EPSG:3857, project it to EPSG:4326 for Leaflet
+    if (data.crs && data.crs.properties && (data.crs.properties.name === "EPSG:3857" || data.crs.properties.name === "urn:ogc:def:crs:EPSG::3857")) {
+        console.log("Projecting data from EPSG:3857 to EPSG:4326");
+        const source = "EPSG:3857";
+        const dest = "EPSG:4326";
+        
+        // Helper to transform coordinates recursively
+        const transformCoords = (coords) => {
+            if (typeof coords[0] === 'number') {
+                return proj4(source, dest, coords);
+            }
+            return coords.map(transformCoords);
+        };
+
+        data.features.forEach(feature => {
+            if (feature.geometry && feature.geometry.coordinates) {
+                feature.geometry.coordinates = transformCoords(feature.geometry.coordinates);
+            }
+        });
+    } else if (data.features && data.features.length > 0 && data.features[0].geometry && data.features[0].geometry.coordinates) {
+        // Fallback detection: if coordinates look like EPSG:3857 (very large numbers)
+        const firstCoord = data.features[0].geometry.type === 'Point' 
+            ? data.features[0].geometry.coordinates 
+            : (data.features[0].geometry.type === 'LineString' 
+                ? data.features[0].geometry.coordinates[0] 
+                : (data.features[0].geometry.type === 'Polygon' ? data.features[0].geometry.coordinates[0][0] : null));
+        
+        if (firstCoord && (Math.abs(firstCoord[0]) > 180 || Math.abs(firstCoord[1]) > 90)) {
+            console.log("Detected large coordinates, projecting from EPSG:3857 to EPSG:4326");
+            const source = "EPSG:3857";
+            const dest = "EPSG:4326";
+            const transformCoords = (coords) => {
+                if (typeof coords[0] === 'number') {
+                    return proj4(source, dest, coords);
+                }
+                return coords.map(transformCoords);
+            };
+            data.features.forEach(feature => {
+                if (feature.geometry && feature.geometry.coordinates) {
+                    feature.geometry.coordinates = transformCoords(feature.geometry.coordinates);
+                }
+            });
+        }
+    }
+
     L.geoJson(data, {
         style: function () {
             return {
@@ -80,7 +126,8 @@ async function addGeoJson(file) {
             };
         },
         onEachFeature: function (feature, layer) {
-            layer.bindPopup(`Name: ${feature.properties.name}`);
+            const name = feature.properties.name || feature.properties.Route || "Unknown Route";
+            layer.bindPopup(`Name: ${name}`);
         },
     }).addTo(map);
 }
