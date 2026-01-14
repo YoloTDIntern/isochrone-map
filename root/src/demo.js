@@ -34,6 +34,7 @@ document.addEventListener('DOMContentLoaded', function() {
     addBoundaries();
     addBusStops();
     addRoutes();
+    addPointsOfInterest();
     setupEventListeners();
 });
 
@@ -115,36 +116,85 @@ async function addGeoJson(file) {
         }
     }
 
+    // Style and add GeoJSON to map
     L.geoJson(data, {
-        style: function () {
+        pointToLayer: function (feature, latlng) {
+            // Check if this is a POI based on file path or properties
+            const isPOI = file.includes('Points of Interest');
+            if (isPOI) {
+                let color = "blue";
+                if (file.includes("Arts_Entertainment")) color = "#9B5DE5";
+                else if (file.includes("Education")) color = "#1982C4";
+                else if (file.includes("Employment")) color = "#1A535C";
+                else if (file.includes("Healthcare")) color = "#FF6B6B";
+                else if (file.includes("Public_Social_Services")) color = "#4ECDC4";
+                else if (file.includes("Residential")) color = "#FF9F1C";
+                else if (file.includes("Retail")) color = "#FFD93D";
+                else if (file.includes("Tourism")) color = "#FF595E";
+                else if (file.includes("Travel")) color = "#8AC926";
+
+                return L.circleMarker(latlng, {
+                    radius: 6,
+                    fillColor: color,
+                    color: "#fff",
+                    weight: 1,
+                    opacity: 1,
+                    fillOpacity: 0.8
+                });
+            }
+            return L.marker(latlng);
+        },
+        style: function (feature) {
+            const name = feature.properties.name || feature.properties.Route || "Unknown route";
+            var color = "lightblue";
+            
+            // POI category based on file path
+            if (file.includes("Arts_Entertainment")) color = "#9B5DE5";
+            else if (file.includes("Education")) color = "#1982C4";
+            else if (file.includes("Employment")) color = "#1A535C";
+            else if (file.includes("Healthcare")) color = "#FF6B6B";
+            else if (file.includes("Public_Social_Services")) color = "#4ECDC4";
+            else if (file.includes("Residential")) color = "#FF9F1C";
+            else if (file.includes("Retail")) color = "#FFD93D";
+            else if (file.includes("Tourism")) color = "#FF595E";
+            else if (file.includes("Travel")) color = "#8AC926";
+            // Transit routes
+            else if (name == "37" || name == "40" || name == "41" || name == "240") {
+                color = "purple";
+            } else if (name == "211" || name == "212") {
+                color = "orange";
+            } else if (name == "42A" || name == "42B") {
+                color = "green";
+            } else if (name == "138EB" || name == "138WB" || name == "215EB" || name == "215WB") {
+                color = "black";
+            } else if (name == "43AM" || name == "43PM" || name == "43RAM" || name == "43RPM" || name == "44AM" || name == "44PM" || name == "230AM" || name == "230PM") {
+                color = "red";
+            } else if (name == "45AM" || name == "45PM") {
+                color = "orange";
+            }
+
+            if (feature.properties.type == "MultiPolygon") {
+                color = "lightgreen";
+            } else if (feature.properties.type == "Point") {
+                // Point color handled in pointToLayer but kept for safety
+            } else if (feature.properties.type == "Polygon") {
+                // Polygon color handled by categories above
+            }
+
             return {
-                color: 'blue',
-                fillColor: 'blue',
+                color: color,
+                fillColor: color,
                 opacity: 0.8,
                 fillOpacity: 0.3,
-                weight: 3,
+                weight: 3
             };
         },
         onEachFeature: function (feature, layer) {
-            const name = feature.properties.name || feature.properties.Route || "Unknown Route";
-            layer.bindPopup(`Name: ${name}`);
+            const name = feature.properties.name || feature.properties.Route || feature.properties.NAME || "Unknown";
+            const type = feature.properties.fclass || feature.properties.type || "";
+            layer.bindPopup(`<strong>${name}</strong><br>${type}`);
         },
     }).addTo(map);
-}
-
-function setStyle(feature) {
-  // var name = feature.getProperty('name');
-  // if (name == "EPSG:3857") {
-  //   color = "green";
-  // }
-  return {
-    color: "darkgreen", // border color
-    fillColor: "green", // fill color
-    fillOpacity: 0.8, // fill transparency
-    weight: 3, // border thickness
-    opacity: 0.8,
-    strokeWeight: 1
-  }
 }
 
 function addBoundaries() {
@@ -159,22 +209,9 @@ function addBoundaries() {
     // map.fitBounds(polygonLayer.getBounds());
     // });
 
-
     // Yolo County Boundaries
-
-    // var yoloBoundaryLeaflet = new L.GeoJSON.AJAX("../layers/Yolo County/Boundaries/Yolo County Boundary.geojson");       
-    // yoloBoundaryLeaflet.addTo(map);
-    // console.log(yoloBoundaryLeaflet);
-
-    // var serviceAreaLeaflet = new L.GeoJSON.AJAX("../layers/Yolo County/Yolobus Service Area.geojson");       
-    // serviceAreaLeaflet.addTo(map);
-    // console.log(serviceAreaLeaflet);
-
     var yoloBoundaryLeaflet = addGeoJson("../layers/Yolo County/Boundaries/Yolo County Boundary.geojson");
     var serviceAreaLeaflet = addGeoJson("../layers/Yolo County/Yolobus Service Area.geojson");
-
-    // setStyle(yoloBoundaryLeaflet);
-    // setStyle(serviceAreaLeaflet);
 }
 
 function addBusStops() {
@@ -192,69 +229,6 @@ function addBusStops() {
       }
     }
     const stops = loadTextFile();
-    
-    // // Convert an array of GTFS objects to GeoJSON "Features" array (https://tools.ietf.org/html/rfc7946#section-3.2)
-    // const gtfsArrayToGeojsonFeatures = (gtfsArray) => {
-    // return gtfsArray.map((gtfsObject) => {
-    //     // console.log("gtfsObject", gtfsObject);
-    //     return {
-    //     type: "Feature",
-    //     properties: {
-    //         // Depending on your data source, the properties available on "gtfsObject" may be different:
-    //         route: gtfsObject.vehicle.trip.route_id,
-    //         route_start: gtfsObject.vehicle.trip.start_time,
-    //         vehicle_label: gtfsObject.vehicle.vehicle.label
-    //     },
-    //     geometry: {
-    //         type: "Point",
-    //         coordinates: [
-    //         gtfsObject.vehicle.position.longitude,
-    //         gtfsObject.vehicle.position.latitude
-    //         ]
-    //     }
-    //     };
-    // });
-    // };
-
-    // const pbfToGeojson = async () => {
-    //     const url =
-    //         "https://stlrealtimevehicles.alligator.workers.dev/?cacheBust=" +
-    //     new Date().getTime();
-    //     let response = await fetch(url);
-    //     if (response.ok) {
-    //         // if HTTP-status is 200-299
-    //         // get the response body (the method explained below)
-    //         const bufferRes = await response.arrayBuffer();
-    //         const pbf = new Pbf(new Uint8Array(bufferRes));
-    //         const obj = FeedMessage.read(pbf);
-
-    //         // Return the data in GeoJSON format:
-    //         return {
-    //             type: "FeatureCollection",
-    //             features: gtfsArrayToGeojsonFeatures(obj.entity)
-    //         };
-    //     } else {
-    //         console.error("error:", response.status);
-    //     }
-    // };
-
-    // const layer = L.geoJSON([], {
-    //     style: function (feature) {
-    //         return { color: feature.properties.color };
-    //     }
-    // })
-    // .bindPopup(function (layer) {
-    //     return "Bus: " + layer.feature.properties.vehicle_label + "<br />Route: " + layer.feature.properties.route;
-    // })
-    // .addTo(map);
-
-    // const updateLayer = async (layer) => {
-    //     const locations = await pbfToGeojson();
-    //     layer.addData(locations);
-    // };
-
-    // updateLayer(layer);
-
 
     // Adds Yolobus stops to map
     for (var i = 1; i < stops.length; i++) {
@@ -333,6 +307,19 @@ function setupEventListeners() {
             hideDialog();
         }
     });
+}
+
+async function addPointsOfInterest() {
+    // Points of Interest
+    await addGeoJson("../layers/Yolo County/Points of Interest/Arts_Entertainment_New.geojson");
+    await addGeoJson("../layers/Yolo County/Points of Interest/Education_New.geojson");
+    await addGeoJson("../layers/Yolo County/Points of Interest/Employment_New.geojson");
+    await addGeoJson("../layers/Yolo County/Points of Interest/Healthcare_New.geojson");
+    await addGeoJson("../layers/Yolo County/Points of Interest/Public_Social_Services_New.geojson");
+    await addGeoJson("../layers/Yolo County/Points of Interest/Residential_New.geojson");
+    await addGeoJson("../layers/Yolo County/Points of Interest/Retail_New.geojson");
+    await addGeoJson("../layers/Yolo County/Points of Interest/Tourism_New.geojson");
+    await addGeoJson("../layers/Yolo County/Points of Interest/Travel_New.geojson");
 }
 
 function onMapClick(event) {
