@@ -216,20 +216,20 @@ async function createGeoJson(file) {
             onEachFeature: function (feature, layer) {
                 const name = feature.properties.name || feature.properties.Route || feature.properties.NAME || null;
                 const type = feature.properties.fclass || feature.properties.type || "";
-                if (name) {
+                if (name && !file.includes('Yolo County Boundary')) {
                     layer.bindPopup(`<strong>${name}</strong><br>${type}`, {
                         autoPan: false
                     });
+                    layer.on('click', function(event) {
+                        onMapClick(event);
+                    });
+                    layer.on('mouseover', function() {
+                        layer.openPopup();
+                    });
+                    layer.on('mouseout', function() {
+                        layer.closePopup();
+                    });
                 }
-                layer.on('click', function(event){
-                    onMapClick(event);
-                });
-                layer.on('mouseover', function(){
-                    layer.openPopup();
-                });
-                layer.on('mouseout', function(){
-                    layer.closePopup();
-                });
             }
         });
     } catch (e) {
@@ -257,7 +257,7 @@ function addBusStops() {
             }
             const text = await response.text();
             const lines = text.split('\n');
-            let markers = [];
+            let busStops = [];
 
             // Skip header
             for (var i = 1; i < lines.length; i++) {
@@ -278,12 +278,23 @@ function addBusStops() {
                     popupAnchor: [0, 0]
                 });
 
-                markers.push(L.marker([stopLat, stopLon], {
+                busStops.push(L.marker([stopLat, stopLon], {
                     icon: busStopIcon
                 }).bindPopup(stopName, { autoPan: false }));
             }
+            for (let stop of busStops) {
+                stop.on('click', function(event) {
+                    onMapClick(event);
+                });
+                stop.on('mouseover', function() {
+                    stop.openPopup();
+                });
+                stop.on('mouseout', function() {
+                    stop.closePopup();
+                });
+            }
 
-            resolve(L.layerGroup(markers));
+            resolve(L.layerGroup(busStops));
         } catch (error) {
             console.error('Error loading bus stops:', error);
             resolve(L.layerGroup());
