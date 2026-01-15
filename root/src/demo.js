@@ -1,6 +1,6 @@
 const GEOAPIFY_API_KEY = '08450434409749f7910860bb29eb30bc'; // Replace with your actual API key
 const DEFAULT_CENTER = [38.6171, -121.6468]; // (lat, lng for Leaflet)
-const DEFAULT_ZOOM = 12;
+const DEFAULT_ZOOM = 10;
 
 // Color palette for isoline polygons
 const COLORS = [
