@@ -13,6 +13,8 @@
         
         <!-- Leaflet map -->
         <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+        <!-- Show/hide geoJSON layers without adding/removing them from the map -->
+        <script src="https://unpkg.com/leaflet-layervisibility/dist/leaflet-layervisibility.js">
         <!-- Load proj4js for coordinate transformation -->
         <script src="https://cdnjs.cloudflare.com/ajax/libs/proj4js/2.11.0/proj4.js"></script>
         <!-- Load external geoJSON file into Leaflet map -->
@@ -43,7 +45,7 @@
         <input type="checkbox" id="healthcare" name="healthcare" value="option1" style="display: none" onclick="togglePOIs(this, 'Healthcare')">
         <label for="healthcare">Healthcare</label>
         <input type="checkbox" id="public-social-services" name="public-social-services" value="option2" style="display: none" onclick="togglePOIs(this, 'PublicSocialServices')">
-        <label for="education">Public Social Services</label>
+        <label for="public-social-services">Public Social Services</label>
         <input type="checkbox" id="residential" name="residential" value="option2" style="display: none" onclick="togglePOIs(this, 'Residential')">
         <label for="residential">Residential</label>
         <input type="checkbox" id="retail" name="retail" value="option1" style="display: none" onclick="togglePOIs(this, 'Retail')">

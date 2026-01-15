@@ -1,0 +1,12 @@
+{
+  "name": "isochrone-map",
+  "version": "1.0.0",
+  "description": "An interactive isochrone map of the Yolobus service area",
+  "main": "index.js",
+  "type": "module",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "Jackie Welte",
+  "license": "ISC"
+}

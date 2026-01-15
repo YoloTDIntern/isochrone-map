@@ -1,3 +1,6 @@
+import L from "leaflet";
+import "./leaflet-layervisibility";
+
 const GEOAPIFY_API_KEY = '08450434409749f7910860bb29eb30bc'; // Replace with your actual API key
 const DEFAULT_CENTER = [38.6171, -121.6468]; // (lat, lng for Leaflet)
 const DEFAULT_ZOOM = 12;
@@ -60,6 +63,7 @@ function initializeMap() {
     map.on('click', onMapClick);
 }
 
+// Add GeoJSON layers to map
 async function addGeoJson(file) {
     console.log("adding geojson: ", file);
     const response = await fetch(file);
@@ -115,7 +119,7 @@ async function addGeoJson(file) {
         }
     }
 
-    // Style and add GeoJSON to map
+    // Style and add GeoJSON layers to map
     return L.geoJson(data, {
         pointToLayer: function (feature, latlng) {
             // Check if this is a POI based on file path or properties
@@ -178,7 +182,9 @@ async function addGeoJson(file) {
             const name = feature.properties.name || feature.properties.Route || feature.properties.NAME || null;
             const type = feature.properties.fclass || feature.properties.type || "";
             if (name) {
-                layer.bindPopup(`<strong>${name}</strong><br>${type}`);
+                layer.bindPopup(`<strong>${name}</strong><br>${type}`, {
+                    autoPan: false, // Disable auto-panning
+                });
             }
             // Show popup on hover
             layer.on('click', function(event){
@@ -252,7 +258,9 @@ function addBusStops() {
 
         L.marker([stopLat, stopLon], {
             icon: busStop
-        }).addTo(map).bindPopup(stopName);
+        }).addTo(map).bindPopup(stopName, {
+            autoPan: false
+        });
         console.log("added stop: ", stopName);
     }
 }
@@ -340,15 +348,15 @@ async function addPOIsByCounty(county) {
         yoloTourism = await addGeoJson("../layers/Yolo County/Points of Interest/Tourism_New.geojson");
         yoloTravel = await addGeoJson("../layers/Yolo County/Points of Interest/Travel_New.geojson");
     } else {
-        sacArtsEntertainment = await addGeoJson("../layers/Sacramento County/Arts_Entertainment_New.geojson");
-        sacEducation = await addGeoJson("../layers/Sacramento County/Education_New.geojson");
-        sacEmployment = await addGeoJson("../layers/Sacramento County/Employment_New.geojson");
-        sacHealthcare = await addGeoJson("../layers/Sacramento County/Healthcare_New.geojson");
-        sacPublicSocialServices = await addGeoJson("../layers/Sacramento County/Public_Social_Services_New.geojson");
-        sacResidential = await addGeoJson("../layers/Sacramento County/Residential_New.geojson");
-        sacRetail = await addGeoJson("../layers/Sacramento County/Retail_New.geojson");
-        sacTourism = await addGeoJson("../layers/Sacramento County/Tourism_New.geojson");
-        sacTravel = await addGeoJson("../layers/Sacramento County/Travel_New.geojson");
+        sacArtsEntertainment = await addGeoJson("../layers/Sacramento County/Points of Interest/Arts_Entertainment_New.geojson");
+        sacEducation = await addGeoJson("../layers/Sacramento County/Points of Interest/Education_New.geojson");
+        sacEmployment = await addGeoJson("../layers/Sacramento County/Points of Interest/Employment_New.geojson");
+        sacHealthcare = await addGeoJson("../layers/Sacramento County/Points of Interest/Healthcare_New.geojson");
+        sacPublicSocialServices = await addGeoJson("../layers/Sacramento County/Points of Interest/Public_Social_Services_New.geojson");
+        sacResidential = await addGeoJson("../layers/Sacramento County/Points of Interest/Residential_New.geojson");
+        sacRetail = await addGeoJson("../layers/Sacramento County/Points of Interest/Retail_New.geojson");
+        sacTourism = await addGeoJson("../layers/Sacramento County/Points of Interest/Tourism_New.geojson");
+        sacTravel = await addGeoJson("../layers/Sacramento County/Points of Interest/Travel_New.geojson");
     }
 }
 
@@ -399,20 +407,21 @@ async function addSacPOIsByCategory(category) {
 function toggleCounty(checkbox, county) {
     const label = document.querySelector(`label[for="${checkbox.id}"]`);
     var layers = {
-        Yolo: [yoloArtsEntertainment, yoloEducation, yoloEmployment, yoloHealthcare, yoloPublicSocialServices, yoloRetail, yoloTourism, yoloTravel],
-        Sacramento: [sacArtsEntertainment, sacEducation, sacEmployment, sacHealthcare, sacPublicSocialServices, sacRetail, sacTourism, sacTravel]
+        Yolo: [yoloArtsEntertainment, yoloEducation, yoloEmployment, yoloHealthcare, yoloPublicSocialServices, yoloResidential, yoloRetail, yoloTourism, yoloTravel],
+        Sacramento: [sacArtsEntertainment, sacEducation, sacEmployment, sacHealthcare, sacPublicSocialServices, sacResidential, sacRetail, sacTourism, sacTravel]
     };
     console.log("showing POIs for county: ", county);
     console.log("label: ", label);
     if (checkbox.checked) {
-        console.log("checked: ", county);
+        console.log("checked: ", county, checkbox.checked);
         addPOIsByCounty(county);
         label.classList.add("selected");
     } else {
-        console.log("unchecked: ", county);
+        console.log("unchecked: ", county, checkbox.checked);
         console.log(layers, layers[county]);
         for (const layer of layers[county]) {
-            map.removeLayer(layer);
+            // map.removeLayer(layer);
+            layer.hide();
         }
         label.classList.remove("selected");
     }
@@ -436,28 +445,31 @@ function togglePOIs(checkbox, category) {
     };
 
     if (yoloLabel.classList.contains("selected") || sacLabel.classList.contains("selected")) {
-        // !!! doesn't work because unlike the county if statement which calls addPOIsByCounty(), this doesn't call addPOIsByCategory()
         if (checkbox.checked) {
-            console.log("checked: ", category);
+            console.log("checked: ", category, checkbox.checked);
             label.classList.add("selected");
             if (yoloLabel.classList.contains("selected")) addYoloPOIsByCategory(category);
             else addSacPOIsByCategory(category);
         } else {
-            console.log("unchecked: ", category);
-            // map.removeLayer(Object.values(layers[category])[index]);
+            console.log("unchecked: ", category, checkbox.checked);
+            for (const layer of layers[category]) {
+                // map.removeLayer(layer);
+                layer.hide();
+            }
             label.classList.remove("selected");
         }
     } else {
         if (checkbox.checked) {
-            console.log("checked: ", category);
+            console.log("checked: ", category, checkbox.checked);
             label.classList.add("selected");
             addYoloPOIsByCategory(category);
             addSacPOIsByCategory(category);
         } else {
-            console.log("unchecked: ", category);
+            console.log("unchecked: ", category, checkbox.checked);
             label.classList.remove("selected");
             for (const layer of layers[category]) {
-                map.removeLayer(layer);
+                // map.removeLayer(layer);
+                layer.hide();
             }
         }
     }
