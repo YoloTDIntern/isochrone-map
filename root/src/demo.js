@@ -1,5 +1,5 @@
 const GEOAPIFY_API_KEY = '08450434409749f7910860bb29eb30bc'; // Replace with your actual API key
-const DEFAULT_CENTER = [38.6171, -121.6468]; // (lat, lng for Leaflet)
+const DEFAULT_CENTER = [38.66989089069272, -122.00919731791129]; // (lat, lng for Leaflet)
 const DEFAULT_ZOOM = 10;
 
 // Color palette for isoline polygons
@@ -78,7 +78,20 @@ function initializeMap(borders, busStops, routes, yoloPOIs, sacPOIs, artsEnterta
         keepBuffer: 2
     }).addTo(map);
 
-    // L.control.scale({position:'bottomleft'}).addTo(map);
+    // Add legend to map
+    var legend = L.control({ position: "bottomleft" });
+    legend.onAdd = function(map) {
+        var div = L.DomUtil.create("div", "legend");
+        div.innerHTML += "<h4>Yolobus Routes</h4>";
+        div.innerHTML += '<i style="background: purple;"></i><span>West Sacramento Local</span><br>';
+        div.innerHTML += '<i style="background: orange;"></i><span>Woodland Local</span><br>';
+        div.innerHTML += '<i style="background: green; width: 9px; margin: 0;"></i><i style="background: black; width: 9px;"></i><span>Intercity</span><br>';
+        div.innerHTML += '<i style="background: red;"></i><span>Davis Express</span><br>';
+        div.innerHTML += '<i style="background: orange;"></i><span>Woodland Express</span><br>';
+        div.innerHTML += '<i class="icon" style="background-image: url(https://d30y9cdsu7xlg0.cloudfront.net/png/194515-200.png); background-repeat: no-repeat;"></i><span>Yolobus Service Area</span><br>';
+        return div;
+    };
+    legend.addTo(map);
 
     // json object for layer switcher control basemaps
     var baseMaps = {
@@ -768,7 +781,7 @@ function detectLayerOverlap(layerGroup, isochrone) {
         const polygon = layer.toGeoJSON();
         var intersection = turf.intersect(polygon, isochrone);
         if (intersection) {
-            console.log("Isochrone overlaps with a layer");
+            console.log("Isochrone overlaps with layer: ", layer);
             // Display text in sidebar
         }
     })
