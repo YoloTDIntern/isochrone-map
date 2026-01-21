@@ -8,5 +8,9 @@
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "author": "Jackie Welte",
-  "license": "ISC"
+  "license": "ISC",
+  "dependencies": {
+    "gtfs2geojson": "^2.0.0",
+    "shpjs": "^6.2.0"
+  }
 }
