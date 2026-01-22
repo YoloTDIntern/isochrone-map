@@ -434,30 +434,24 @@ function initializeStopList() {
     return { yolobusStops, unitransStops };
 }
 
-// Add bus stop and route layers from GTFS data (GTFS to GeoJSON) ; doesn't work
-// async function test() {
-//     const { stops, lines } = await import('./node_modules/gtfs2geojson/index.js');
-//     var x = stops('../../gtfs/Yolobus GTFS/stops.txt');
-//     console.log("test: ", x);
-//     var y = lines('../../gtfs/Yolobus GTFS/shapes.txt');
-//     console.log("test: ", y);
-//     return {x, y};
-// }
-// var {x, y} = test();
+// Add bus stop and route layers from GTFS data
+async function loadTransitData() {
+    // client-side logic for transit data
+}
 
-import gtfsToGeoJSON from 'gtfs-to-geojson';
-import { readFile } from 'fs/promises';
-const config = JSON.parse(
-  await readFile(new URL('./config.json', import.meta.url))
-);
-
-gtfsToGeoJSON(config)
-  .then(() => {
-    console.log('GeoJSON Generation Successful');
-  })
-  .catch((err) => {
-    console.error(err);
-  });
+// gtfsToGeoJSON is not natively supported in the browser and requires a Node.js environment.
+// For client-side GTFS parsing, use addBusStops or consider pre-converting GTFS to GeoJSON.
+function addTransitData() {
+    return new Promise(async (resolve) => {
+        try {
+            // Placeholder for transit data loading logic
+            resolve(L.layerGroup());
+        } catch (error) {
+            console.error('Error loading transit data:', error);
+            resolve(L.layerGroup());
+        }
+    });
+}
 
 
 function addBusStops(filePath, busStops, busStopMarker) {
