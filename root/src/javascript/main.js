@@ -114,58 +114,153 @@ function initializeMap(borders, yolobusStops, unitransStops, routes, yoloPOIs, s
         div.innerHTML += '<i style="background: green; width: 9px; margin: 0;"></i><i style="background: black; width: 9px;"></i><span>Intercity</span><br>';
         div.innerHTML += '<i style="background: red;"></i><span>Davis Express</span><br>';
         div.innerHTML += '<i style="background: orange;"></i><span>Woodland Express</span><br>';
-        div.innerHTML += '<i class="icon" style="background-image: url(https://d30y9cdsu7xlg0.cloudfront.net/png/194515-200.png); background-repeat: no-repeat;"></i><span>Yolobus Service Area</span><br>';
+        // div.innerHTML += '<i style="background: rgba(173,216,230,0.5); opacity: 0.3; border: 3px solid rgba(173,216,230,1); box-sizing: border-box;"></i><span>Yolobus Service Area</span><br>';
+        // div.innerHTML += '<i class="icon" style="background-image: url(https://d30y9cdsu7xlg0.cloudfront.net/png/194515-200.png); background-repeat: no-repeat;"></i><span>Yolobus Service Area</span><br>';
         return div;
     };
     legend.addTo(map);
 
-    // json object for layer control basemaps
-    var baseMaps = {
-        "Geoapify": geoapify
+    // json object for layer control basemap
+    var baseMap = {
+        "Geoapify Base Map": geoapify
     };
 
-    var overlayMaps = {
-        // "Borders": borders,
-        "Yolo County Border": borders.customGetLayer('yoloCountyBoundary'),
-        "Yolobus Service Area": borders.customGetLayer('yolobusServiceArea'),
-        "Yolobus Stops": yolobusStops,
-        "Unitrans Stops": unitransStops,
-        // "Routes": routes,
-        "RT 37": routes.customGetLayer('rt37'),
-        "RT 40": routes.customGetLayer('rt40'),
-        "RT 41": routes.customGetLayer('rt41'),
-        "RT 240": routes.customGetLayer('rt240'),
-        "RT 211": routes.customGetLayer('rt211'),
-        "RT 212": routes.customGetLayer('rt212'),
-        "RT 42A": routes.customGetLayer('rt42A'),
-        "RT 42B": routes.customGetLayer('rt42B'),
-        "RT 138EB": routes.customGetLayer('rt138EB'),
-        "RT 138WB": routes.customGetLayer('rt138WB'),
-        "RT 215EB": routes.customGetLayer('rt215EB'),
-        "RT 215WB": routes.customGetLayer('rt215WB'),
-        "RT 43AM": routes.customGetLayer('rt43AM'),
-        "RT 43PM": routes.customGetLayer('rt43PM'),
-        "RT 43RAM": routes.customGetLayer('rt43RAM'),
-        "RT 43RPM": routes.customGetLayer('rt43RPM'),
-        "RT 44AM": routes.customGetLayer('rt44AM'),
-        "RT 44PM": routes.customGetLayer('rt44PM'),
-        "RT 230AM": routes.customGetLayer('rt230AM'),
-        "RT 230PM": routes.customGetLayer('rt230PM'),
-        "RT 45AM": routes.customGetLayer('rt45AM'),
-        "RT 45PM": routes.customGetLayer('rt45PM'),
-        // "CalEnviroScreen 4.0": calEnviroScreen, 
-        "Arts & Entertainment": artsEntertainment,
-        "Education": education,
-        "Employment": employment,
-        "Healthcare": healthcare,
-        "Public & Social Services": publicSocialServices,
-        "Residential": residential,
-        "Retail": retail,
-        "Tourism": tourism,
-        "Travel": travel
+    
+    var overlaysTree = {
+        label: "Layers",
+        selectAllCheckbox: "Un/select all",
+        children: [
+            {
+                label: "Borders",
+                selectAllCheckbox: "Un/select all",
+                children: [
+                    { label: "Yolobus Service Area", layer: borders.customGetLayer('yolobusServiceArea') },
+                    { label: "Yolo County Border", layer: borders.customGetLayer('yoloCountyBoundary') }
+                ]
+            }, {
+                label: "Stops",
+                    selectAllCheckbox: "Un/select all",
+                    children: [
+                        { label: "Yolobus", layer: yolobusStops },
+                        { label: "Unitrans", layer: unitransStops }
+                    ]
+            }, {
+                label: "Routes",
+                selectAllCheckbox: "Un/select all",
+                children: [
+                    {
+                        label: "Yolobus",
+                        selectAllCheckbox: true,
+                        children: [
+                            {
+                                label: "West Sacramento Local",
+                                selectAllCheckbox: true,
+                                children: [
+                                    { label: "RT 37", layer: routes.customGetLayer('rt37') },
+                                    { label: "RT 40", layer: routes.customGetLayer('rt40') },
+                                    { label: "RT 41", layer: routes.customGetLayer('rt41') },
+                                    { label: "RT 240", layer: routes.customGetLayer('rt240') }
+                                ]
+                            }, {
+                                label: "Woodland Local",
+                                selectAllCheckbox: true,
+                                children: [
+                                    { label: "RT 211", layer: routes.customGetLayer('rt211') },
+                                    { label: "RT 212", layer: routes.customGetLayer('rt212') }
+                                ]
+                            }, {
+                                label: "Intercity",
+                                selectAllCheckbox: true,
+                                children: [
+                                    { label: "RT 42A", layer: routes.customGetLayer('rt42A') },
+                                    { label: "RT 42B", layer: routes.customGetLayer('rt42B') },
+                                    { label: "RT 138EB", layer: routes.customGetLayer('rt138EB') },
+                                    { label: "RT 138WB", layer: routes.customGetLayer('rt138WB') },
+                                    { label: "RT 215EB", layer: routes.customGetLayer('rt215EB') },
+                                    { label: "RT 215WB", layer: routes.customGetLayer('rt215WB') }
+                                ]
+                            }, {
+                                label: "Davis Express",
+                                selectAllCheckbox: true,
+                                children: [
+                                    { label: "RT 43AM", layer: routes.customGetLayer('rt43AM') },
+                                    { label: "RT 43PM", layer: routes.customGetLayer('rt43PM') },
+                                    { label: "RT 43RAM", layer: routes.customGetLayer('rt43RAM') },
+                                    { label: "RT 43RPM", layer: routes.customGetLayer('rt43RPM') },
+                                    { label: "RT 44AM", layer: routes.customGetLayer('rt44AM') },
+                                    { label: "RT 44PM", layer: routes.customGetLayer('rt44PM') },
+                                    { label: "RT 230AM", layer: routes.customGetLayer('rt230AM') },
+                                    { label: "RT 230PM", layer: routes.customGetLayer('rt230PM') }
+                                ]
+                            }, {
+                                label: "Woodland Express",
+                                selectAllCheckbox: true,
+                                children: [
+                                    { label: "RT 45AM", layer: routes.customGetLayer('rt45AM') },
+                                    { label: "RT 45PM", layer: routes.customGetLayer('rt45PM') }
+                                ]
+                            }
+                        ]
+                    }
+                    // {
+                    //     label: "Unitrans",
+                    //     selectAllCheckbox: true,
+                    //     children: [
+                    //         { label: "RT M", layer: routes.customGetLayer('rtm') },
+                    // }
+                ]
+            }, {
+                label: "Points of Interest",
+                selectAllCheckbox: "Un/select all",
+                children: [
+                    {
+                        label: "Yolo County",
+                        selectAllCheckbox: true,
+                        children: [
+                            { label: "Arts & Entertainment", layer: yoloPOIs.customGetLayer('yoloArtsEntertainment') },
+                            { label: "Education", layer: yoloPOIs.customGetLayer('yoloEducation') },
+                            { label: "Employment", layer: yoloPOIs.customGetLayer('yoloEmployment') },
+                            { label: "Healthcare", layer: yoloPOIs.customGetLayer('yoloHealthcare') },
+                            { label: "Public & Social Services", layer: yoloPOIs.customGetLayer('yoloPublicSocialServices') },
+                            { label: "Residential", layer: yoloPOIs.customGetLayer('yoloResidential') },
+                            { label: "Retail", layer: yoloPOIs.customGetLayer('yoloRetail') },
+                            { label: "Tourism", layer: yoloPOIs.customGetLayer('yoloTourism') },
+                            { label: "Travel", layer: yoloPOIs.customGetLayer('yoloTravel') }
+                        ]
+                    }, {
+                        label: "Sacramento County",
+                        selectAllCheckbox: true,
+                        children: [
+                            { label: "Arts & Entertainment", layer: sacPOIs.customGetLayer('sacArtsEntertainment') },
+                            { label: "Education", layer: sacPOIs.customGetLayer('sacEducation') },
+                            { label: "Employment", layer: sacPOIs.customGetLayer('sacEmployment') },
+                            { label: "Healthcare", layer: sacPOIs.customGetLayer('sacHealthcare') },
+                            { label: "Public & Social Services", layer: sacPOIs.customGetLayer('sacPublicSocialServices') },
+                            { label: "Residential", layer: sacPOIs.customGetLayer('sacResidential') },
+                            { label: "Retail", layer: sacPOIs.customGetLayer('sacRetail') },
+                            { label: "Tourism", layer: sacPOIs.customGetLayer('sacTourism') },
+                            { label: "Travel", layer: sacPOIs.customGetLayer('sacTravel') }
+                        ]
+                    }
+                ]
+            }
+        ]
     };
-    // Add layer groups to layer switcher control
-    var layerControl = L.control.layers(baseMaps, overlayMaps).addTo(map);
+    
+
+    // plug-ins to enhance layers control: https://leafletjs.com/plugins.html#layer-switching-controls
+    // convert layers control to collapsible tree: https://github.com/jjimenezshaw/Leaflet.Control.Layers.Tree
+    // options example: https://github.com/jjimenezshaw/Leaflet.Control.Layers.Tree/blob/master/examples/options.html
+
+    // Add layer groups to layer control
+    var layerControl = L.control.layers.tree(baseMap, overlaysTree, 
+                                            {
+                                                hideSingleBase: true,
+                                                collapseAll: "Collapse all",
+                                                expandAll: 'Expand all',
+                                            });
+    // Collapse all layers by default
+    layerControl.addTo(map).collapseTree().expandSelected().collapseTree(true);
     console.log(layerControl);
     
     // // Get list of active layers
@@ -506,6 +601,17 @@ async function addYoloPOIs() {
     var yoloRetail = await createGeoJson("../../geojson/Yolo County Points of Interest/Retail.geojson");
     var yoloTourism = await createGeoJson("../../geojson/Yolo County Points of Interest/Tourism.geojson");
     var yoloTravel = await createGeoJson("../../geojson/Yolo County Points of Interest/Travel.geojson");
+
+    yoloArtsEntertainment.id = 'yoloArtsEntertainment';
+    yoloEducation.id = 'yoloEducation';
+    yoloEmployment.id = 'yoloEmployment';
+    yoloHealthcare.id = 'yoloHealthcare';
+    yoloPublicSocialServices.id = 'yoloPublicSocialServices';
+    yoloResidential.id = 'yoloResidential';
+    yoloRetail.id = 'yoloRetail';
+    yoloTourism.id = 'yoloTourism';
+    yoloTravel.id = 'yoloTravel';
+    
     var yoloPOIs = L.layerGroup([yoloArtsEntertainment, yoloEducation, yoloEmployment, yoloHealthcare, yoloPublicSocialServices, yoloResidential, yoloRetail, yoloTourism, yoloTravel]);
     return yoloPOIs;
 }
@@ -520,6 +626,17 @@ async function addSacPOIs() {
     var sacRetail = await createGeoJson("../../geojson/Sacramento County Points of Interest/Retail.geojson");
     var sacTourism = await createGeoJson("../../geojson/Sacramento County Points of Interest/Tourism.geojson");
     var sacTravel = await createGeoJson("../../geojson/Sacramento County Points of Interest/Travel.geojson");
+
+    sacArtsEntertainment.id = 'sacArtsEntertainment';
+    sacEducation.id = 'sacEducation';
+    sacEmployment.id = 'sacEmployment';
+    sacHealthcare.id = 'sacHealthcare';
+    sacPublicSocialServices.id = 'sacPublicSocialServices';
+    sacResidential.id = 'sacResidential';
+    sacRetail.id = 'sacRetail';
+    sacTourism.id = 'sacTourism';
+    sacTravel.id = 'sacTravel';
+    
     var sacPOIs = L.layerGroup([sacArtsEntertainment, sacEducation, sacEmployment, sacHealthcare, sacPublicSocialServices, sacResidential, sacRetail, sacTourism, sacTravel]);
     return sacPOIs;
 }
