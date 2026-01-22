@@ -1,0 +1,24 @@
+// List of plug-ins to enhance layers control
+https://leafletjs.com/plugins.html#layer-switching-controls
+
+// Convert layers control to collapsible tree
+https://github.com/jjimenezshaw/Leaflet.Control.Layers.Tree
+
+// Layers control options example
+https://github.com/jjimenezshaw/Leaflet.Control.Layers.Tree/blob/master/examples/options.html
+
+
+// Disadvantaged Communities layer data download (shapefile)
+https://oehha.ca.gov/calenviroscreen/report/calenviroscreen-40
+https://calenviroscreen-oehha.hub.arcgis.com/
+
+
+// GTFS to GeoJSON plugin
+https://github.com/BlinkTagInc/gtfs-to-geojson
+
+// GTFS to GeoJSON web tool
+geojson.gtfstohtml.com
+
+
+// Add fullscreen button to map
+https://github.com/brunob/leaflet.fullscreen/tree/master
