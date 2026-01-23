@@ -435,15 +435,6 @@ function initializeStopList() {
 }
 
 // Add bus stop and route layers from GTFS data (GTFS to GeoJSON) ; doesn't work
-// async function test() {
-//     const { stops, lines } = await import('./node_modules/gtfs2geojson/index.js');
-//     var x = stops('../../gtfs/Yolobus GTFS/stops.txt');
-//     console.log("test: ", x);
-//     var y = lines('../../gtfs/Yolobus GTFS/shapes.txt');
-//     console.log("test: ", y);
-//     return {x, y};
-// }
-// var {x, y} = test();
 
 
 function addBusStops(filePath, busStops, busStopMarker) {
