@@ -12,6 +12,12 @@ https://github.com/jjimenezshaw/Leaflet.Control.Layers.Tree/blob/master/examples
 https://oehha.ca.gov/calenviroscreen/report/calenviroscreen-40
 https://calenviroscreen-oehha.hub.arcgis.com/
 
+// Shapefile zip to GeoJSON!!!!!!!
+https://mapshaper.org/
+
+// Custom choropleth map!!!!
+https://leafletjs.com/examples/choropleth/
+
 
 // GTFS to GeoJSON plugin (doesn't work on browser)
 https://github.com/BlinkTagInc/gtfs-to-geojson
@@ -35,3 +41,7 @@ https://www.stevencanplan.com/2016/02/converting-a-transit-agencys-gtfs-to-shape
 
 // GTFS QGIS Plugin!!!! (incompatible)
 https://github.com/MIERUNE/GTFS-GO
+
+
+// new web app link
+https://isoline-map.onrender.com

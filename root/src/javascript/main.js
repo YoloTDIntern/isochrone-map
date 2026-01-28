@@ -29,6 +29,7 @@ const splitByCommaNotInParentheses = (input) => {
     return input.split(regex);
 };
 
+// Add custom method to L.LayerGroup to get layer by ID
 L.LayerGroup.include({
     customGetLayer: function (id) {
         for (var i in this._layers) {
@@ -42,26 +43,31 @@ L.LayerGroup.include({
 // Initialize the application
 document.addEventListener('DOMContentLoaded', async function() {
     // Wait for all async layers to load before initializing map
-
-    // const stopDict = initializeStopList();
     const [
-        borders, yolobus, unitrans, yoloPOIs, sacPOIs
+        borders, yolobus, unitrans, calEnviroScreen, yoloPOIs, sacPOIs
     ] = await Promise.all([
         addBoundaries(),
-        addTransitData("/yolobus_gtfs.zip", "Yolobus", "../../assets/images/yolobus-bus-stop.png"),
-        addTransitData("/unitrans_gtfs.zip", "Unitrans", "../../assets/images/unitrans-bus-stop.png"),
-        // addCalEnviroScreen(),
+        addTransitData(
+            "/yolobus_gtfs.zip", "Yolobus", "../../assets/images/yolobus-bus-stop.png"
+        ),
+        addTransitData(
+            "/unitrans_gtfs.zip", "Unitrans", "../../assets/images/unitrans-bus-stop.png"
+        ),
+        addCalEnviroScreen(),
         addYoloPOIs(),
         addSacPOIs()
     ]);
 
-    initializeMap(borders, yolobus, unitrans, yoloPOIs, sacPOIs);
-    // document.getElementById("loader").remove();
+    initializeMap(borders, yolobus, unitrans, calEnviroScreen, yoloPOIs, sacPOIs);
     document.getElementById("loader").style.display = 'none';
+    console.log(map.hasLayer(calEnviroScreen));
+    console.log("CES bounds valid:", calEnviroScreen.getBounds().isValid());
+    console.log("CES bounds:", calEnviroScreen.getBounds());
+
     setupEventListeners();
 });
 
-function initializeMap(borders, yolobus, unitrans, yoloPOIs, sacPOIs) {
+function initializeMap(borders, yolobus, unitrans, calEnviroScreen, yoloPOIs, sacPOIs) {
     // Initialize Leaflet map
     map = L.map('map').setView(DEFAULT_CENTER, DEFAULT_ZOOM);
 
@@ -105,34 +111,98 @@ function initializeMap(borders, yolobus, unitrans, yoloPOIs, sacPOIs) {
     };
     legend.addTo(map);
 
+
+    // CalEnviroScreen legend
+    var calLegend = L.control(
+        { opacity: 1,
+         fillOpacity: 1,
+         position: 'bottomright' }
+    );
+    calLegend.onAdd = function (map) {
+        var div = L.DomUtil.create('div', 'legend'),
+            labels = [">90 - 100 (Highest Scores)", ">80 - 90", ">70 - 80", ">60 - 70", ">50 - 60", ">40 - 50", ">30 - 40", ">20 - 30", ">10 - 20", "0 - 10 (Lowest Scores)"];
+            colors = ['#F06F5C', '#F29262', '#F4B169', '#F8CD71', '#FDF07B', '#E9F079', '#BFD26E', '#99B863', '#7B9F5A', '#5E8751'];
+        div.style.width = '200px';
+        div.innerHTML = `<h4>CalEnviroScreen 4.0 Percentile</h4>`;
+        // loop through intervals and generate a label with a colored square for each interval
+        for (var i = 0; i < labels.length; i++) {
+            div.innerHTML += `<i style="background: ${colors[i]};"></i><span>${labels[i]}</span><br>`;
+        }
+        return div;
+    };
+    calLegend.addTo(map);
+
+
+
+    
+
     // Add fullscreen button to map
     map.addControl(new L.Control.FullScreen());
 
-    // json object for layer control basemap
+    
+    var info = L.control();
+    info.onAdd = function(map) {
+        this._div = L.DomUtil.create('div', 'info'); // create a div with a class "info"
+        this.update();
+        return this._div;
+    };
+    // method that we will use to update the control based on feature properties passed
+    info.update = function(calEnviroScreen) {
+        this._div.innerHTML = '<h4>CalEnviroScreen 4.0 Percentile</h4>' +  (calEnviroScreen ?
+            '<b>Tract: ' + calEnviroScreen.Tract + 'Population: ' + calEnviroScreen.TotPop19 + ' people'
+            : 'Hover over a tract');
+    };
+    info.addTo(map);
+    
+    
+    // map.on('overlayadd', function(eventLayer) {
+    //     console.log(eventLayer);
+    //       // Switch the legends...
+    //     for (let i = 0; i < routeLayers.length; i++) {
+    //         if (eventLayer == routeLayers[i].id) {
+    //             legend.addTo(map);
+    //             map.removeControl(calLegend);
+    //     }
+    //     } else if (eventLayer.id === 'CalEnviroScreen') {
+    //         calLegend.addTo(map);
+    //         map.removeControl(legend);
+    //     }
+    // });
+
+    // map.on('overlayremove', function(eventLayer) {
+    //     if (eventLayer.id === 'Yolobus') {
+    //         map.removeControl(legend);
+    //     } else if (eventLayer.id === 'CalEnviroScreen') {
+    //         map.removeControl(calLegend);
+    // }
+    // });
+
+    
+    // JSON object for layer control basemap
     var baseMap = {
         "Geoapify Base Map": geoapify
     };
     
     var overlaysTree = {
-        label: "Layers",
+        label: "LAYERS",
         selectAllCheckbox: "Un/select all",
         children: [
             {
-                label: "Borders",
+                label: "BORDERS",
                 selectAllCheckbox: "Un/select all",
                 children: [
                     { label: "Yolobus Service Area", layer: borders.customGetLayer('yolobusServiceArea') },
                     { label: "Yolo County Border", layer: borders.customGetLayer('yoloCountyBoundary') }
                 ]
             }, {
-                label: "Stops",
+                label: "STOPS",
                     selectAllCheckbox: "Un/select all",
                     children: [
                         { label: "Yolobus", layer: yolobus.customGetLayer('stops') },
                         { label: "Unitrans", layer: unitrans.customGetLayer('stops') }
                     ]
             }, {
-                label: "Routes",
+                label: "ROUTES",
                 selectAllCheckbox: "Un/select all",
                 children: [
                     {
@@ -227,18 +297,20 @@ function initializeMap(borders, yolobus, unitrans, yoloPOIs, sacPOIs) {
                     }
                 ]
             }, {
-                label: "Points of Interest",
+                label: "POINTS OF INTEREST",
                 selectAllCheckbox: "Un/select all",
                 children: [
                     {
                         label: "Yolo County",
                         selectAllCheckbox: true,
                         children: [
-                            { label: "Arts & Entertainment", layer: yoloPOIs.customGetLayer('yoloArts_Entertainment') },
+                            { label: "Arts & Entertainment", 
+                             layer: yoloPOIs.customGetLayer('yoloArts_Entertainment') },
                             { label: "Education", layer: yoloPOIs.customGetLayer('yoloEducation') },
                             { label: "Employment", layer: yoloPOIs.customGetLayer('yoloEmployment') },
                             { label: "Healthcare", layer: yoloPOIs.customGetLayer('yoloHealthcare') },
-                            { label: "Public & Social Services", layer: yoloPOIs.customGetLayer('yoloPublic_Social_Services') },
+                            { label: "Public & Social Services", 
+                             layer: yoloPOIs.customGetLayer('yoloPublic_Social_Services') },
                             { label: "Residential", layer: yoloPOIs.customGetLayer('yoloResidential') },
                             { label: "Retail", layer: yoloPOIs.customGetLayer('yoloRetail') },
                             { label: "Tourism", layer: yoloPOIs.customGetLayer('yoloTourism') },
@@ -248,11 +320,13 @@ function initializeMap(borders, yolobus, unitrans, yoloPOIs, sacPOIs) {
                         label: "Sacramento County",
                         selectAllCheckbox: true,
                         children: [
-                            { label: "Arts & Entertainment", layer: sacPOIs.customGetLayer('sacArts_Entertainment') },
+                            { label: "Arts & Entertainment", 
+                             layer: sacPOIs.customGetLayer('sacArts_Entertainment') },
                             { label: "Education", layer: sacPOIs.customGetLayer('sacEducation') },
                             { label: "Employment", layer: sacPOIs.customGetLayer('sacEmployment') },
                             { label: "Healthcare", layer: sacPOIs.customGetLayer('sacHealthcare') },
-                            { label: "Public & Social Services", layer: sacPOIs.customGetLayer('sacPublic_Social_Services') },
+                            { label: "Public & Social Services", 
+                             layer: sacPOIs.customGetLayer('sacPublic_Social_Services') },
                             { label: "Residential", layer: sacPOIs.customGetLayer('sacResidential') },
                             { label: "Retail", layer: sacPOIs.customGetLayer('sacRetail') },
                             { label: "Tourism", layer: sacPOIs.customGetLayer('sacTourism') },
@@ -260,9 +334,7 @@ function initializeMap(borders, yolobus, unitrans, yoloPOIs, sacPOIs) {
                         ]
                     }
                 ]
-            // }, {
-            //     label: "CalEnviroScreen", layer: calEnviroScreen
-            }
+            }, { label: "CalEnviroScreen", layer: calEnviroScreen }
         ]
     };
 
@@ -312,55 +384,37 @@ async function createGeoJson(file, fileName, busStopMarker = "") {
             data = file;
         }
 
-        // const lastSlash = location.pathname.lastIndexOf('/');
-        // const directoryName = location.pathname.substring(1,lastSlash);
-        // if (!directoryName) return;
-        // if (directoryName == "shapefiles") {
-        //     console.log("directory name: ", directoryName);
-        //     const geojson = shp(file);
-        //     console.log(geojson);
-        //     return L.geoJson(geojson);
-        // }
-        
-        // If data is in EPSG:3857, project it to EPSG:4326 for Leaflet
-        if (data.crs && data.crs.properties && (data.crs.properties.name === "EPSG:3857" || data.crs.properties.name === "urn:ogc:def:crs:EPSG::3857")) {
-            // console.log("Projecting data from EPSG:3857 to EPSG:4326");
-            const source = "EPSG:3857";
-            const dest = "EPSG:4326";
-            
-            // Helper to transform coordinates recursively
-            const transformCoords = (coords) => {
-                if (typeof coords[0] === 'number') {
-                    return proj4(source, dest, coords);
-                }
-                return coords.map(transformCoords);
+
+        if (fileName === "CalEnviroScreen") {
+            console.warn("Skipping all reprojection for CalEnviroScreen");
+        } else {
+            // Detect Web Mercator (meters, not degrees)
+            const looksLike3857 = (coord) =>
+                Array.isArray(coord) &&
+                (Math.abs(coord[0]) > 200000 || Math.abs(coord[1]) > 200000);
+
+            // Safely get first coordinate (works for MultiPolygon)
+            const getFirstCoord = (geom) => {
+                let c = geom.coordinates;
+                while (Array.isArray(c[0])) c = c[0];
+                return c;
             };
 
-            data.features.forEach(feature => {
-                if (feature.geometry && feature.geometry.coordinates) {
-                    feature.geometry.coordinates = transformCoords(feature.geometry.coordinates);
-                }
-            });
-        } else if (data.features && data.features.length > 0 && data.features[0].geometry && data.features[0].geometry.coordinates) {
-            // Fallback detection: if coordinates look like EPSG:3857 (very large numbers)
-            const firstCoord = data.features[0].geometry.type === 'Point' 
-                ? data.features[0].geometry.coordinates 
-                : (data.features[0].geometry.type === 'LineString' 
-                    ? data.features[0].geometry.coordinates[0] 
-                    : (data.features[0].geometry.type === 'Polygon' ? data.features[0].geometry.coordinates[0][0] : null));
-            
-            if (firstCoord && (Math.abs(firstCoord[0]) > 180 || Math.abs(firstCoord[1]) > 90)) {
-                console.log("Detected large coordinates, projecting from EPSG:3857 to EPSG:4326");
-                const source = "EPSG:3857";
-                const dest = "EPSG:4326";
+            const firstFeature = data.features?.[0];
+            const firstCoord = firstFeature?.geometry ? getFirstCoord(firstFeature.geometry) : null;
+
+            if (firstCoord && looksLike3857(firstCoord)) {
+                console.log(`Reprojecting ${fileName} from EPSG:3857 → EPSG:4326`);
+
                 const transformCoords = (coords) => {
                     if (typeof coords[0] === 'number') {
-                        return proj4(source, dest, coords);
+                        return proj4("EPSG:3857", "EPSG:4326", coords);
                     }
                     return coords.map(transformCoords);
                 };
+
                 data.features.forEach(feature => {
-                    if (feature.geometry && feature.geometry.coordinates) {
+                    if (feature.geometry?.coordinates) {
                         feature.geometry.coordinates = transformCoords(feature.geometry.coordinates);
                     }
                 });
@@ -434,9 +488,11 @@ async function createGeoJson(file, fileName, busStopMarker = "") {
                     opacity: 1,
                     fillOpacity: 0.8
                 });
-            },
+            },            
             style: function (feature) {
                 let color = "pink";
+                let opacity = 0.8;
+                let fillOpacity = 0.3;
                 var category = fileName.split(" ")[1];
                 
                 if (fileName == "Yolobus Service Area") color = "lightblue";
@@ -448,23 +504,42 @@ async function createGeoJson(file, fileName, busStopMarker = "") {
                         break;
                     }
                 }
-
+                if (fileName == "CalEnviroScreen") {
+                    // Set color based on CI score percentile value
+                    color =
+                        feature.properties.CIscoreP > 90 ? '#F06F5C' :
+                        feature.properties.CIscoreP > 80 ? '#F29262' :
+                        feature.properties.CIscoreP > 70 ? '#F4B169' :
+                        feature.properties.CIscoreP > 60 ? '#F8CD71' :
+                        feature.properties.CIscoreP > 50 ? '#FDF07B' :
+                        feature.properties.CIscoreP > 40 ? '#E9F079' :
+                        feature.properties.CIscoreP > 30 ? '#BFD26E' :
+                        feature.properties.CIscoreP > 20 ? '#99B863' :
+                        feature.properties.CIscoreP > 10 ? '#7B9F5A' : '#5E8751';
+                    opacity = 0.9;
+                    fillOpacity = 0.6;
+                }
+                
                 return {
+                    // color: getColor(feature.properties.CIscoreP),
                     color: color,
                     fillColor: color,
-                    opacity: 0.8,
-                    fillOpacity: 0.3,
+                    opacity: opacity,
+                    fillOpacity: fillOpacity,
                     weight: 3
                 };
             },
-
             onEachFeature: function (feature, layer) {
-                if (layer._isBusStop) return;
-                if (fileName == 'Yolo County Boundary') return;
+                if (layer._isBusStop || (fileName == 'Yolo County Boundary')) return;
                 
                 const name = feature.properties.name || feature.properties.NAME;
-                const type = feature.properties.fclass || feature.properties.type || "";
-                const popupContent = name ? `<strong>${name}</strong><br>${type}` : `<strong>${fileName}</strong>`;
+                const CIscorePercentile = feature.properties.CIscoreP?.toFixed(2);
+                const population = feature.properties.TotPop19?.toLocaleString('en');
+                const popupContent = name ? `<strong>${name}</strong>` : 
+                        CIscorePercentile ? `<strong>Tract: </strong>${feature.properties.Tract}<br>
+                        <strong>CalEnviroScreen 4.0 Percentile: </strong>${CIscorePercentile}<br>
+                        <strong>Population: </strong>${population}` : 
+                        `<strong>${fileName}</strong>`;
             
                 layer.bindPopup(popupContent, { autoPan: false });
                 layer.on('click', event => onMapClick(event));
@@ -584,11 +659,9 @@ async function addTransitData(gtfsFile, agencyName, busStopMarker) {
 
 // Add Disadvantaged Communities layer (shapefile to GeoJSON)
 async function addCalEnviroScreen() {
-    var calEnviroScreen = await createGeoJson("../../shapefiles/calenviroscreen40shpf2021shp.zip", "CalEnviroScreen");
-    // const geojson = shp("../../shapefiles/CalEnviroScreen40-2021shp.zip");
-    // console.log(geojson);
-    // var calEnviroScreen =  L.geoJson(geojson);
-
+    var calEnviroScreen = await createGeoJson(
+        "../../geojson/CalEnviroScreen/CES4 Final Shapefile.json", "CalEnviroScreen"
+    );
     return calEnviroScreen;
 }
 
