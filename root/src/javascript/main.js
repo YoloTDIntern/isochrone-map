@@ -28,12 +28,14 @@ const splitByCommaNotInParentheses = (input) => {
     const regex = /,(?![^()]*\))/g;
     return input.split(regex);
 };
+let info;
+let calLegend;
 
 // Add custom method to L.LayerGroup to get layer by ID
 L.LayerGroup.include({
     customGetLayer: function (id) {
         for (var i in this._layers) {
-            if (this._layers[i].id == id) {
+            if (this._layers[i].id === id) {
                return this._layers[i];
             }
         }
@@ -86,6 +88,17 @@ function initializeMap(borders, yolobus, unitrans, calEnviroScreen, yoloPOIs, sa
         keepBuffer: 2
     }).addTo(map);
 
+    map.createPane('calEnviroPane');
+    // Set the z-index of the pane to below the default pane
+    map.getPane('calEnviroPane').style.zIndex = 400;
+    // Allow mouse events on the pane
+    map.getPane('calEnviroPane').style.pointerEvents = 'auto';
+    map.createPane('topPane');
+    // Set the z-index of the pane to above CalEnviroScreen
+    map.getPane('topPane').style.zIndex = 450;
+    map.getPane('topPane').style.pointerEvents = 'auto';
+    
+
     // Add scale to map
     L.control.scale({
         maxWidth: 200,
@@ -95,25 +108,59 @@ function initializeMap(borders, yolobus, unitrans, calEnviroScreen, yoloPOIs, sa
     }).addTo(map);
 
     // Add legend to map
-    var legend = L.control({ position: "bottomleft" });
-    legend.onAdd = function(map) {
+    yolobusLegend = L.control({ position: "bottomleft" });
+    yolobusLegend.onAdd = function(map) {
         var div = L.DomUtil.create("div", "legend");
         div.innerHTML += "<h4>Yolobus Routes</h4>";
         div.innerHTML += '<i style="background: purple;"></i><span>West Sacramento Local</span><br>';
         div.innerHTML += '<i style="background: orange;"></i><span>Woodland Local/Express</span><br>';
         div.innerHTML += '<i style="background: green; width: 9px; margin: 0;"></i><i style="background: black; width: 9px;"></i><span>Intercity</span><br>';
         div.innerHTML += '<i style="background: red;"></i><span>Davis Express</span><br>';
-        // div.innerHTML += '<i style="background: orange;"></i><span>Woodland Express</span><br>';
-        
-        // div.innerHTML += '<i style="background: rgba(173,216,230,0.5); opacity: 0.3; border: 3px solid rgba(173,216,230,1); box-sizing: border-box;"></i><span>Yolobus Service Area</span><br>';
-        // div.innerHTML += '<i class="icon" style="background-image: url(https://d30y9cdsu7xlg0.cloudfront.net/png/194515-200.png); background-repeat: no-repeat;"></i><span>Yolobus Service Area</span><br>';
         return div;
     };
-    legend.addTo(map);
 
+    const unitransLegend = L.control({ position: 'bottomleft' });
+    unitransLegend.onAdd = function(map) {
+        const div = L.DomUtil.create('div', 'legend');
+        div.innerHTML += "<h4>Unitrans Routes</h4>";
+        div.innerHTML += '<i style="background: #4CC8F2;"></i><span>Memorial Union</span><br>';
+        div.innerHTML += '<i style="background: #2E3092;"></i><span>Silo</span><br>';
+        div.innerHTML += '<i style="background: #C276C4;"></i><span>Davis High & Junior High</span><br>';
+        return div;
+    };
+
+    const agencyLegends = {
+        yolobus: yolobusLegend,
+        unitrans: unitransLegend
+    };
+
+    // Check if any routes from an agency are active
+    function anyAgencyRoutesActive(agency) {
+        // agency.routes is an array of route layers
+        return agency.routes.some(layer => map.hasLayer(layer));
+    }
+
+    // Update agency legend based on layer visibility
+    function updateAgencyLegend(agency, legend) {
+        if (anyAgencyRoutesActive(agency)) {
+            legend.addTo(map);
+        } else {
+            map.removeControl(legend);
+        }
+    }
+
+    // Listen for layer changes
+    map.on('overlayadd overlayremove', function () {
+        updateAgencyLegend(yolobus, agencyLegends.yolobus);
+        updateAgencyLegend(unitrans, agencyLegends.unitrans);
+    });
+
+    // Initial legend visibility
+    updateAgencyLegend(yolobus, agencyLegends.yolobus);
+    updateAgencyLegend(unitrans, agencyLegends.unitrans);
 
     // CalEnviroScreen legend
-    var calLegend = L.control(
+    calLegend = L.control(
         { opacity: 1,
          fillOpacity: 1,
          position: 'bottomright' }
@@ -130,53 +177,48 @@ function initializeMap(borders, yolobus, unitrans, calEnviroScreen, yoloPOIs, sa
         }
         return div;
     };
-    calLegend.addTo(map);
-
-
-
-    
+    // calLegend.addTo(map);
 
     // Add fullscreen button to map
     map.addControl(new L.Control.FullScreen());
 
-    
-    var info = L.control();
+
+    info = L.control();
     info.onAdd = function(map) {
         this._div = L.DomUtil.create('div', 'info'); // create a div with a class "info"
         this.update();
         return this._div;
     };
     // method that we will use to update the control based on feature properties passed
-    info.update = function(calEnviroScreen) {
-        this._div.innerHTML = '<h4>CalEnviroScreen 4.0 Percentile</h4>' +  (calEnviroScreen ?
-            '<b>Tract: ' + calEnviroScreen.Tract + 'Population: ' + calEnviroScreen.TotPop19 + ' people'
-            : 'Hover over a tract');
+    info.update = function(props) {
+        this._div.innerHTML = `
+            <h4>CalEnviroScreen 4.0</h4>
+            ${props
+                ? `<b>Tract:</b> ${props.Tract}<br/>
+                   <b>Population:</b> ${props.TotPop19?.toLocaleString()}<br/>
+                   <b>Percentile:</b> ${props.CIscoreP?.toFixed(1)}`
+                : 'Hover over a census tract'}
+        `;
     };
-    info.addTo(map);
-    
-    
-    // map.on('overlayadd', function(eventLayer) {
-    //     console.log(eventLayer);
-    //       // Switch the legends...
-    //     for (let i = 0; i < routeLayers.length; i++) {
-    //         if (eventLayer == routeLayers[i].id) {
-    //             legend.addTo(map);
-    //             map.removeControl(calLegend);
-    //     }
-    //     } else if (eventLayer.id === 'CalEnviroScreen') {
-    //         calLegend.addTo(map);
-    //         map.removeControl(legend);
-    //     }
-    // });
+    // info.addTo(map);
 
-    // map.on('overlayremove', function(eventLayer) {
-    //     if (eventLayer.id === 'Yolobus') {
-    //         map.removeControl(legend);
-    //     } else if (eventLayer.id === 'CalEnviroScreen') {
-    //         map.removeControl(calLegend);
-    // }
-    // });
+    map.on('overlayadd', function (e) {
+        if (e.layer === calEnviroScreen) {
+            info.addTo(map);
+            calLegend.addTo(map);
+        }
+    });
 
+    map.on('overlayremove', function (e) {
+        if (e.layer === calEnviroScreen) {
+            map.removeControl(info);
+            map.removeControl(calLegend);
+        }
+    });
+
+    function getRouteLayer(agency, id) {
+        return agency.routes.find(r => r.id === id);
+    }
     
     // JSON object for layer control basemap
     var baseMap = {
@@ -198,8 +240,8 @@ function initializeMap(borders, yolobus, unitrans, calEnviroScreen, yoloPOIs, sa
                 label: "STOPS",
                     selectAllCheckbox: "Un/select all",
                     children: [
-                        { label: "Yolobus", layer: yolobus.customGetLayer('stops') },
-                        { label: "Unitrans", layer: unitrans.customGetLayer('stops') }
+                        { label: "Yolobus", layer: yolobus.stops },
+                        { label: "Unitrans", layer: unitrans.stops }
                     ]
             }, {
                 label: "ROUTES",
@@ -213,41 +255,41 @@ function initializeMap(borders, yolobus, unitrans, calEnviroScreen, yoloPOIs, sa
                                 label: "West Sacramento Local",
                                 selectAllCheckbox: true,
                                 children: [
-                                    { label: "37", layer: yolobus.customGetLayer('37') },
-                                    { label: "40", layer: yolobus.customGetLayer('40') },
-                                    { label: "41", layer: yolobus.customGetLayer('41') },
-                                    { label: "240", layer: yolobus.customGetLayer('240') }
+                                    { label: "37", layer: getRouteLayer(yolobus, '37') },
+                                    { label: "40", layer: getRouteLayer(yolobus, '40') },
+                                    { label: "41", layer: getRouteLayer(yolobus, '41') },
+                                    { label: "240", layer: getRouteLayer(yolobus, '240') }
                                 ]
                             }, {
                                 label: "Woodland Local",
                                 selectAllCheckbox: true,
                                 children: [
-                                    { label: "211", layer: yolobus.customGetLayer('211') },
-                                    { label: "212", layer: yolobus.customGetLayer('212') }
+                                    { label: "211", layer: getRouteLayer(yolobus, '211') },
+                                    { label: "212", layer: getRouteLayer(yolobus, '212') }
                                 ]
                             }, {
                                 label: "Intercity",
                                 selectAllCheckbox: true,
                                 children: [
-                                    { label: "42A", layer: yolobus.customGetLayer('42A') },
-                                    { label: "42B", layer: yolobus.customGetLayer('42B') },
-                                    { label: "138", layer: yolobus.customGetLayer('138') },
-                                    { label: "215", layer: yolobus.customGetLayer('215') }
+                                    { label: "42A", layer: getRouteLayer(yolobus, '42A') },
+                                    { label: "42B", layer: getRouteLayer(yolobus, '42B') },
+                                    { label: "138", layer: getRouteLayer(yolobus, '138') },
+                                    { label: "215", layer: getRouteLayer(yolobus, '215') }
                                 ]
                             }, {
                                 label: "Davis Express",
                                 selectAllCheckbox: true,
                                 children: [
-                                    { label: "43", layer: yolobus.customGetLayer('43') },
-                                    { label: "43R", layer: yolobus.customGetLayer('43R') },
-                                    { label: "44", layer: yolobus.customGetLayer('44') },
-                                    { label: "230", layer: yolobus.customGetLayer('230') }
+                                    { label: "43", layer: getRouteLayer(yolobus, '43') },
+                                    { label: "43R", layer: getRouteLayer(yolobus, '43R') },
+                                    { label: "44", layer: getRouteLayer(yolobus, '44') },
+                                    { label: "230", layer: getRouteLayer(yolobus, '230') }
                                 ]
                             }, {
                                 label: "Woodland Express",
                                 selectAllCheckbox: true,
                                 children: [
-                                    { label: "45", layer: yolobus.customGetLayer('45') }
+                                    { label: "45", layer: getRouteLayer(yolobus, '45') }
                                 ]
                             }
                         ]
@@ -259,38 +301,38 @@ function initializeMap(borders, yolobus, unitrans, calEnviroScreen, yoloPOIs, sa
                                 label: "Memorial Union",
                                 selectAllCheckbox: true,
                                 children: [
-                                    { label: "A", layer: unitrans.customGetLayer('A') },
-                                    { label: "B", layer: unitrans.customGetLayer('B') },
-                                    { label: "E", layer: unitrans.customGetLayer('E') },
-                                    { label: "F", layer: unitrans.customGetLayer('F') },
-                                    { label: "G", layer: unitrans.customGetLayer('G') },
-                                    { label: "K", layer: unitrans.customGetLayer('K') },
-                                    { label: "M", layer: unitrans.customGetLayer('M') },
-                                    { label: "O", layer: unitrans.customGetLayer('O') },
-                                    { label: "P", layer: unitrans.customGetLayer('P') },
-                                    { label: "Q", layer: unitrans.customGetLayer('Q') },
-                                    { label: "U", layer: unitrans.customGetLayer('U') },
-                                    { label: "FMS", layer: unitrans.customGetLayer('FMS') }
+                                    { label: "A", layer: getRouteLayer(unitrans, 'A') },
+                                    { label: "B", layer: getRouteLayer(unitrans, 'B') },
+                                    { label: "E", layer: getRouteLayer(unitrans, 'E') },
+                                    { label: "F", layer: getRouteLayer(unitrans, 'F') },
+                                    { label: "G", layer: getRouteLayer(unitrans, 'G') },
+                                    { label: "K", layer: getRouteLayer(unitrans, 'K') },
+                                    { label: "M", layer: getRouteLayer(unitrans, 'M') },
+                                    { label: "O", layer: getRouteLayer(unitrans, 'O') },
+                                    { label: "P", layer: getRouteLayer(unitrans, 'P') },
+                                    { label: "Q", layer: getRouteLayer(unitrans, 'Q') },
+                                    { label: "U", layer: getRouteLayer(unitrans, 'U') },
+                                    { label: "FMS", layer: getRouteLayer(unitrans, 'FMS') }
                                 ]
                             }, {
                                 label: "Silo",
                                 selectAllCheckbox: true,
                                 children: [
-                                    { label: "C", layer: unitrans.customGetLayer('C') },
-                                    { label: "D", layer: unitrans.customGetLayer('D') },
-                                    { label: "J", layer: unitrans.customGetLayer('J') },
-                                    { label: "L", layer: unitrans.customGetLayer('L') },
-                                    { label: "V", layer: unitrans.customGetLayer('V') },
-                                    { label: "VL", layer: unitrans.customGetLayer('VL') },
-                                    { label: "VX", layer: unitrans.customGetLayer('VX') },
-                                    { label: "W", layer: unitrans.customGetLayer('W') },
-                                    { label: "Z", layer: unitrans.customGetLayer('Z') }
+                                    { label: "C", layer: getRouteLayer(unitrans, 'C') },
+                                    { label: "D", layer: getRouteLayer(unitrans, 'D') },
+                                    { label: "J", layer: getRouteLayer(unitrans, 'J') },
+                                    { label: "L", layer: getRouteLayer(unitrans, 'L') },
+                                    { label: "V", layer: getRouteLayer(unitrans, 'V') },
+                                    { label: "VL", layer: getRouteLayer(unitrans, 'VL') },
+                                    { label: "VX", layer: getRouteLayer(unitrans, 'VX') },
+                                    { label: "W", layer: getRouteLayer(unitrans, 'W') },
+                                    { label: "Z", layer: getRouteLayer(unitrans, 'Z') }
                                 ]
                             }, {
                                 label: "Davis High & Junior High",
                                 selectAllCheckbox: true,
                                 children: [
-                                    { label: "T", layer: unitrans.customGetLayer('T') }
+                                    { label: "T", layer: getRouteLayer(unitrans, 'T') }
                                 ]
                             }
                         ]
@@ -367,7 +409,7 @@ function initializeMap(borders, yolobus, unitrans, calEnviroScreen, yoloPOIs, sa
 // });
 
 // Create GeoJSON layers
-async function createGeoJson(file, fileName, busStopMarker = "") {
+async function createGeoJson(file, fileName, busStopMarker = "", agencyName = null) {
     try {
         let data;
 
@@ -386,7 +428,7 @@ async function createGeoJson(file, fileName, busStopMarker = "") {
 
 
         if (fileName === "CalEnviroScreen") {
-            console.warn("Skipping all reprojection for CalEnviroScreen");
+            console.warn("Skipping all reprojection for CalEnviroScreen");        
         } else {
             // Detect Web Mercator (meters, not degrees)
             const looksLike3857 = (coord) =>
@@ -456,19 +498,25 @@ async function createGeoJson(file, fileName, busStopMarker = "") {
             "Intercity Cache Creek": "black",
             "Davis Express": "red", 
             "Woodland Express": "orange", 
-            "Memorial Union": "#58BFB9",
-            "Silo": "#4375E0",
+            "Memorial Union": "#4CC8F2",
+            "Silo": "#2E3092",
             "Davis High & Junior High": "#C276C4"
         };
 
-        return L.geoJson(data, {
+        let layerGroup;
+        layerGroup = L.geoJson(data, {
+            pane: fileName === "CalEnviroScreen" ? 'calEnviroPane' : 'topPane',
             pointToLayer: function (feature, latlng) {
                 // Bus stops
                 if (fileName.includes('Stops')) {
-                    const stopName = feature.properties.stop_name || feature.properties.name || "Stop";
+                    const stopName = feature.properties.stop_name || feature.properties.name;
+                    const popupContent = (stopName && agencyName) ? 
+                        `<strong>${agencyName}: ${stopName}</strong>` : 
+                        agencyName ? `<strong>${agencyName} Stop</strong>` : 
+                        `<strong>${stopName}</strong>`;
                     const marker = L.marker(latlng, { icon: busStopIcon });
 
-                    marker.bindPopup(stopName, { autoPan: false });
+                    marker.bindPopup(popupContent, { autoPan: false });
                     marker.on('click', event => onMapClick(event));
                     marker.on('mouseover', () => marker.openPopup());
                     marker.on('mouseout', () => marker.closePopup());
@@ -529,24 +577,44 @@ async function createGeoJson(file, fileName, busStopMarker = "") {
                     weight: 3
                 };
             },
-            onEachFeature: function (feature, layer) {
-                if (layer._isBusStop || (fileName == 'Yolo County Boundary')) return;
-                
-                const name = feature.properties.name || feature.properties.NAME;
-                const CIscorePercentile = feature.properties.CIscoreP?.toFixed(2);
-                const population = feature.properties.TotPop19?.toLocaleString('en');
-                const popupContent = name ? `<strong>${name}</strong>` : 
-                        CIscorePercentile ? `<strong>Tract: </strong>${feature.properties.Tract}<br>
-                        <strong>CalEnviroScreen 4.0 Percentile: </strong>${CIscorePercentile}<br>
-                        <strong>Population: </strong>${population}` : 
-                        `<strong>${fileName}</strong>`;
-            
+            onEachFeature: function(feature, layer) {
+                if (layer._isBusStop) return;
+
+                // CalEnviroScreen highlight
+                if (fileName === "CalEnviroScreen") {
+                    layer.on('mouseover', function() {
+                        layer.setStyle({ weight: 3, color: '#666', fillOpacity: 0.7 });
+                        layer.bringToFront();
+                        info.update(layer.feature.properties);
+                    });
+                    layer.on('mouseout', function() {
+                        layerGroup.resetStyle(layer);
+                        info.update();
+                    });
+                    return;
+                }
+
+                // Route popup
+                if (layer._layerType === 'route' && agencyName) {
+                    const routeId = feature.properties.route_id || fileName;
+                    const popupContent = `<strong>${agencyName}: ${routeId}</strong>`;
+                    layer.bindPopup(popupContent, { autoPan: false });
+                    layer.on('click', event => onMapClick(event));
+                    layer.on('mouseover', e => layer.openPopup(e.latlng));
+                    layer.on('mouseout', () => layer.closePopup());
+                    return;
+                }
+
+                // Default polygon/POI popup
+                const name = feature.properties.name || feature.properties.NAME || fileName;
+                const popupContent = `<strong>${name}</strong>`;
                 layer.bindPopup(popupContent, { autoPan: false });
                 layer.on('click', event => onMapClick(event));
                 layer.on('mouseover', e => layer.openPopup(e.latlng));
                 layer.on('mouseout', () => layer.closePopup());
             }
         });
+        return layerGroup;
     } catch (e) {
         console.error("Error creating GeoJSON layer:", e);
         return L.layerGroup();
@@ -640,21 +708,29 @@ async function gtfsZipToGeoJSON(gtfsFile) {
 async function addTransitData(gtfsFile, agencyName, busStopMarker) {
     const { stopsGeoJSON: stops, routesGeoJSONs: routes } = await gtfsZipToGeoJSON(gtfsFile);
     
-    var stopsLayer = await createGeoJson(stops, `${agencyName} Stops`, busStopMarker);
+    var stopsLayer = await createGeoJson(stops, `${agencyName} Stops`, busStopMarker, agencyName);
     stopsLayer.id = 'stops';
+    stopsLayer._agency = agencyName;
+    stopsLayer._layerType = 'stops';
 
+    // Create a layer for each route
     const routeLayers = [];
     for (const [routeId, route] of routes.entries()) {
-        const layer = await createGeoJson(route, routeId);
-        // const layer = await createGeoJson(route, `${agencyName} Route ${routeId}`);
+        const layer = await createGeoJson(route, routeId, "", agencyName);
         layer.id = routeId;
+        layer._agency = agencyName;
+        layer._layerType = 'route';
         routeLayers.push(layer);
     }
 
     // Combine stops + routes for each agency
     const agencyData = L.layerGroup([stopsLayer, ...routeLayers]);
     
-    return agencyData;
+    return {
+        group: agencyData,
+        stops: stopsLayer,
+        routes: routeLayers
+    };
 }
 
 // Add Disadvantaged Communities layer (shapefile to GeoJSON)
