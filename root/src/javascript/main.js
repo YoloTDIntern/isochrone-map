@@ -49,12 +49,8 @@ document.addEventListener('DOMContentLoaded', async function() {
         borders, yolobus, unitrans, calEnviroScreen, yoloPOIs, sacPOIs
     ] = await Promise.all([
         addBoundaries(),
-        addTransitData(
-            "/yolobus_gtfs.zip", "Yolobus", "../../assets/images/yolobus-bus-stop.png"
-        ),
-        addTransitData(
-            "/unitrans_gtfs.zip", "Unitrans", "../../assets/images/unitrans-bus-stop.png"
-        ),
+        addTransitData("/yolobus_gtfs.zip", "Yolobus", "../../assets/images/yolobus-bus-stop.png"),
+        addTransitData("/unitrans_gtfs.zip", "Unitrans", "../../assets/images/unitrans-bus-stop.png"),
         addCalEnviroScreen(),
         addYoloPOIs(),
         addSacPOIs()
@@ -116,6 +112,9 @@ function initializeMap(borders, yolobus, unitrans, calEnviroScreen, yoloPOIs, sa
         div.innerHTML += '<i style="background: orange;"></i><span>Woodland Local/Express</span><br>';
         div.innerHTML += '<i style="background: green; width: 9px; margin: 0;"></i><i style="background: black; width: 9px;"></i><span>Intercity</span><br>';
         div.innerHTML += '<i style="background: red;"></i><span>Davis Express</span><br>';
+        // Allow scrolling inside legend on mobile
+        L.DomEvent.disableClickPropagation(div);
+        L.DomEvent.disableScrollPropagation(div);
         return div;
     };
 
@@ -126,6 +125,9 @@ function initializeMap(borders, yolobus, unitrans, calEnviroScreen, yoloPOIs, sa
         div.innerHTML += '<i style="background: #4CC8F2;"></i><span>Memorial Union</span><br>';
         div.innerHTML += '<i style="background: #2E3092;"></i><span>Silo</span><br>';
         div.innerHTML += '<i style="background: #C276C4;"></i><span>Davis High & Junior High</span><br>';
+        // Allow scrolling inside legend on mobile
+        L.DomEvent.disableClickPropagation(div);
+        L.DomEvent.disableScrollPropagation(div);
         return div;
     };
 
@@ -175,15 +177,16 @@ function initializeMap(borders, yolobus, unitrans, calEnviroScreen, yoloPOIs, sa
         for (var i = 0; i < labels.length; i++) {
             div.innerHTML += `<i style="background: ${colors[i]};"></i><span>${labels[i]}</span><br>`;
         }
+        // Allow scrolling inside legend on mobile
+        L.DomEvent.disableClickPropagation(div);
+        L.DomEvent.disableScrollPropagation(div);
         return div;
     };
-    // calLegend.addTo(map);
 
     // Add fullscreen button to map
     map.addControl(new L.Control.FullScreen());
 
-
-    info = L.control();
+    info = L.control({ position: 'topleft' });
     info.onAdd = function(map) {
         this._div = L.DomUtil.create('div', 'info'); // create a div with a class "info"
         this.update();
@@ -200,12 +203,12 @@ function initializeMap(borders, yolobus, unitrans, calEnviroScreen, yoloPOIs, sa
                 : 'Hover over a census tract'}
         `;
     };
-    // info.addTo(map);
 
     map.on('overlayadd', function (e) {
         if (e.layer === calEnviroScreen) {
             info.addTo(map);
             calLegend.addTo(map);
+            layerControl.getContainer().classList.add('legend-open');
         }
     });
 
@@ -213,6 +216,7 @@ function initializeMap(borders, yolobus, unitrans, calEnviroScreen, yoloPOIs, sa
         if (e.layer === calEnviroScreen) {
             map.removeControl(info);
             map.removeControl(calLegend);
+            layerControl.getContainer.classList.remove('legend-open');
         }
     });
 
@@ -389,6 +393,25 @@ function initializeMap(borders, yolobus, unitrans, calEnviroScreen, yoloPOIs, sa
                                             });
     // Collapse all layers by default
     layerControl.addTo(map).collapseTree().expandSelected().collapseTree(true);
+
+    // Set max-height dynamically
+    function adjustLayersControlHeight() {
+        const controlPanel = document.querySelector('.leaflet-control-layers-list');
+        if (!controlPanel) return;
+        const legendVisible = calEnviroScreen && map.hasLayer(calEnviroScreen);
+        if (window.innerWidth <= 768) {
+            controlPanel.style.maxHeight = legendVisible ? '200px' : '300px';
+        } else {
+            controlPanel.style.height = legendVisible ? '320px' : 'auto';
+            controlPanel.style.maxHeight = legendVisible ? '320px' : '640px';
+            controlPanel.style.overflowY = 'auto';
+        }
+    }
+    window.addEventListener('resize', adjustLayersControlHeight);
+    // Call after expanding/collapsing layers
+    map.on('overlayadd overlayremove', adjustLayersControlHeight);
+    map.on('layeradd layerremove', adjustLayersControlHeight);
+    adjustLayersControlHeight();
     
     // // Get list of active layers
     // var active = layerControl.getActiveOverlayLayers();    // TypeError: layerControl.getActiveOverlayLayers is not a function
@@ -754,9 +777,7 @@ async function addYoloPOIs() {
         "Tourism",
         "Travel"
     ];
-
     const layers = [];
-
     for (const category of categories) {
         const layer = await createGeoJson(
             `../../geojson/Yolo County Points of Interest/${category}.geojson`,
@@ -780,9 +801,7 @@ async function addSacPOIs() {
         "Tourism",
         "Travel"
     ];
-
     const layers = [];
-
     for (const category of categories) {
         const layer = await createGeoJson(
             `../../geojson/Sacramento County Points of Interest/${category}.geojson`,
@@ -791,7 +810,6 @@ async function addSacPOIs() {
         layer.id = `sac${category}`;
         layers.push(layer);
     }
-
     return L.layerGroup(layers);
 }
 

@@ -74,12 +74,17 @@ body {
 
 .leaflet-control-layers-list {
     width: 230px !important;
-    max-height: 445px !important;
+    height: auto;
+    max-height: 640px;
     overflow-y: scroll !important;
     font-size: 1em !important;
     text-wrap: wrap !important;
     padding: 10px;
     box-sizing: border-box;
+}
+
+.leaflet-control-layers-list.legend-open {
+    max-height: 320px;
 }
 
 .leaflet-control-layers label {
@@ -92,6 +97,13 @@ body {
     display: flex;
     align-items: center;
     justify-content: center;
+}
+
+#map .leaflet-top.leaflet-left {
+    display: flex;
+    flex-direction: row;
+    align-items: flex-start;
+    gap: 8px;
 }
 
 .leaflet-control-scale-line {
@@ -113,6 +125,7 @@ body {
     line-height: 24px;
     color: #555;
 }
+
 .legend h4 {
     text-align: center;
     font-size: 16px;
@@ -151,11 +164,13 @@ body {
 }
 
 .info {
+    position: relative;
     padding: 6px 8px;
     background: white;
     background: rgba(255,255,255,0.8);
     box-shadow: 0 0 15px rgba(0,0,0,0.2);
     border-radius: 5px;
+    z-index: 1000;
 }
 
 .info h4 {
@@ -427,6 +442,21 @@ body {
 @media (max-width: 768px) {
     .container {
         flex-direction: column;
+    }
+
+    .leaflet-control-layers {
+        max-height: 300px !important;
+        overflow-y: auto !important;
+    }
+
+    .leaflet-control-layers-list {
+        max-height: 280px !important;
+        overflow-y: auto !important;
+    }
+
+    .legend {
+        max-height: 100px !important;
+        overflow-y: auto !important;
     }
 
     .sidebar {
