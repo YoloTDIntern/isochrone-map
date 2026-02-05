@@ -28,8 +28,52 @@ const splitByCommaNotInParentheses = (input) => {
     const regex = /,(?![^()]*\))/g;
     return input.split(regex);
 };
+const categories = [
+    "Arts_Entertainment",
+    "Education",
+    "Employment",
+    "Healthcare",
+    "Public_Social_Services",
+    "Residential",
+    "Retail",
+    "Tourism",
+    "Travel"
+];
 let info;
 let calLegend;
+const categoryColors = {
+    "Arts_Entertainment": "#9B5DE5",
+    "Education": "#1982C4",
+    "Employment": "#1A535C",
+    "Healthcare": "#FF6B6B",
+    "Public_Social_Services": "#4ECDC4",
+    "Residential": "#FF9F1C",
+    "Retail": "#FFD93D",
+    "Tourism": "#FF595E",
+    "Travel": "#8AC926"
+};
+const routeTypes = {
+    "West Sacramento Local": ["37", "40", "41", "240"],
+    "Woodland Local": ["211", "212"],
+    "Intercity": ["42A", "42B", "138"],
+    "Intercity Cache Creek": ["215"],
+    "Davis Express": ["43", "43R", "44", "230"],
+    "Woodland Express": "45",
+    "Memorial Union": ["A", "B", "E", "F", "G", "K", "M", "O", "P", "Q", "U", "FMS"],
+    "Silo": ["C", "D", "J", "L", "V", "VL", "VX", "W", "Z"],
+    "Davis High & Junior High": ["T"]
+};
+const routeColors = {
+    "West Sacramento Local": "purple", 
+    "Woodland Local": "orange", 
+    "Intercity": "green", 
+    "Intercity Cache Creek": "black",
+    "Davis Express": "red", 
+    "Woodland Express": "orange", 
+    "Memorial Union": "#4CC8F2",
+    "Silo": "#2E3092",
+    "Davis High & Junior High": "#C276C4"
+};
 
 // Add custom method to L.LayerGroup to get layer by ID
 L.LayerGroup.include({
@@ -58,9 +102,9 @@ document.addEventListener('DOMContentLoaded', async function() {
 
     initializeMap(borders, yolobus, unitrans, calEnviroScreen, yoloPOIs, sacPOIs);
     document.getElementById("loader").style.display = 'none';
-    console.log(map.hasLayer(calEnviroScreen));
-    console.log("CES bounds valid:", calEnviroScreen.getBounds().isValid());
-    console.log("CES bounds:", calEnviroScreen.getBounds());
+    // console.log(map.hasLayer(calEnviroScreen));
+    // console.log("CES bounds valid:", calEnviroScreen.getBounds().isValid());
+    // console.log("CES bounds:", calEnviroScreen.getBounds());
 
     setupEventListeners();
 });
@@ -394,6 +438,8 @@ function initializeMap(borders, yolobus, unitrans, calEnviroScreen, yoloPOIs, sa
     // Collapse all layers by default
     layerControl.addTo(map).collapseTree().expandSelected().collapseTree(true);
 
+    map.on('overlayadd overlayremove', listActiveLayers);
+
     // Set max-height dynamically
     function adjustLayersControlHeight() {
         const controlPanel = document.querySelector('.leaflet-control-layers-list');
@@ -492,39 +538,6 @@ async function createGeoJson(file, fileName, busStopMarker = "", agencyName = nu
             iconAnchor: [7.5, 7.5],
             popupAnchor: [0, 0]
         });
-        const categoryColors = {
-            "Arts_Entertainment": "#9B5DE5",
-            "Education": "#1982C4",
-            "Employment": "#1A535C",
-            "Healthcare": "#FF6B6B",
-            "Public_Social_Services": "#4ECDC4",
-            "Residential": "#FF9F1C",
-            "Retail": "#FFD93D",
-            "Tourism": "#FF595E",
-            "Travel": "#8AC926"
-        }
-        const routeTypes = {
-            "West Sacramento Local": ["37", "40", "41", "240"],
-            "Woodland Local": ["211", "212"],
-            "Intercity": ["42A", "42B", "138"],
-            "Intercity Cache Creek": ["215"],
-            "Davis Express": ["43", "43R", "44", "230"],
-            "Woodland Express": "45",
-            "Memorial Union": ["A", "B", "E", "F", "G", "K", "M", "O", "P", "Q", "U", "FMS"],
-            "Silo": ["C", "D", "J", "L", "V", "VL", "VX", "W", "Z"],
-            "Davis High & Junior High": ["T"]
-        };
-        const routeColors = {
-            "West Sacramento Local": "purple", 
-            "Woodland Local": "orange", 
-            "Intercity": "green", 
-            "Intercity Cache Creek": "black",
-            "Davis Express": "red", 
-            "Woodland Express": "orange", 
-            "Memorial Union": "#4CC8F2",
-            "Silo": "#2E3092",
-            "Davis High & Junior High": "#C276C4"
-        };
 
         let layerGroup;
         layerGroup = L.geoJson(data, {
@@ -549,7 +562,17 @@ async function createGeoJson(file, fileName, busStopMarker = "", agencyName = nu
                 }
                 
                 // All other points are POIs
-                let color = categoryColors[fileName];
+                // Set color property based on category
+                let color = categoryColors[fileName.split(" ")[1]];
+                feature.properties.color = color;
+                // Set category property
+                if (fileName.split(" ")[1] === "Arts_Entertainment") {
+                    feature.properties.category = "Arts & Entertainment";
+                } else if (fileName.split(" ")[1] === "Public_Social_Services") {
+                    feature.properties.category = "Public & Social Services";
+                } else {
+                    feature.properties.category = fileName.split(" ")[1];
+                }
 
                 return L.circleMarker(latlng, {
                     radius: 6,
@@ -592,7 +615,6 @@ async function createGeoJson(file, fileName, busStopMarker = "", agencyName = nu
                 }
                 
                 return {
-                    // color: getColor(feature.properties.CIscoreP),
                     color: color,
                     fillColor: color,
                     opacity: opacity,
@@ -635,6 +657,18 @@ async function createGeoJson(file, fileName, busStopMarker = "", agencyName = nu
                 layer.on('click', event => onMapClick(event));
                 layer.on('mouseover', e => layer.openPopup(e.latlng));
                 layer.on('mouseout', () => layer.closePopup());
+
+                // Set color property based on category
+                let color = categoryColors[fileName.split(" ")[1]];
+                feature.properties.color = color;
+                // Set category property
+                if (fileName.split(" ")[1] === "Arts_Entertainment") {
+                    feature.properties.category = "Arts & Entertainment";
+                } else if (fileName.split(" ")[1] === "Public_Social_Services") {
+                    feature.properties.category = "Public & Social Services";
+                } else {
+                    feature.properties.category = fileName.split(" ")[1];
+                }
             }
         });
         return layerGroup;
@@ -766,17 +800,6 @@ async function addCalEnviroScreen() {
 
 // By county
 async function addYoloPOIs() {
-    const categories = [
-        "Arts_Entertainment",
-        "Education",
-        "Employment",
-        "Healthcare",
-        "Public_Social_Services",
-        "Residential",
-        "Retail",
-        "Tourism",
-        "Travel"
-    ];
     const layers = [];
     for (const category of categories) {
         const layer = await createGeoJson(
@@ -790,17 +813,6 @@ async function addYoloPOIs() {
 }
 
 async function addSacPOIs() {
-    const categories = [
-        "Arts_Entertainment",
-        "Education",
-        "Employment",
-        "Healthcare",
-        "Public_Social_Services",
-        "Residential",
-        "Retail",
-        "Tourism",
-        "Travel"
-    ];
     const layers = [];
     for (const category of categories) {
         const layer = await createGeoJson(
@@ -1067,6 +1079,43 @@ function detectLayerOverlap(layerGroup, isoline) {
             // Display text in sidebar
         }
     })
+}
+
+function listActiveLayers() {
+    const activeLayers = [];
+    const inactiveLayers = [];
+    map.eachLayer(function(layer) {
+        if (layer instanceof L.LayerGroup && map.hasLayer(layer)) {
+            activeLayers.push(layer);
+        } else {
+            inactiveLayers.push(layer);
+        }
+    });
+    // Remove all existing rows from table
+    const table = document.getElementById('table');
+    for (let i = 1; i < table.childElementCount; i++) {
+        table.removeChild(table.children[i]);
+    }
+
+    // Add rows for each active layer
+    for (activeLayer of activeLayers) {
+        for (feature of Object.values(activeLayer._layers)) {
+            const row = document.createElement('tr');
+            console.log(feature.feature.properties.color);
+            row.style.backgroundColor = `${feature.feature.properties.color}30`;
+            const featureName = document.createElement('td');
+            const name = feature.feature.properties.name ? feature.feature.properties.name : '-';
+            featureName.innerHTML = name;
+            const city = document.createElement('td');
+            city.innerHTML = feature.feature.properties?.['addr:city'] ? feature.feature.properties['addr:city'] : '-';
+            const category = document.createElement('td');
+            category.innerHTML = feature.feature.properties.category;
+            row.appendChild(featureName);
+            row.appendChild(city);
+            row.appendChild(category);
+            table.appendChild(row);
+        }
+    }
 }
 
 function showLoadingIndicator() {
