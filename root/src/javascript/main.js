@@ -785,7 +785,7 @@ async function addTransitData(gtfsFile, agencyName, busStopMarker) {
 // Add Disadvantaged Communities layer (shapefile to GeoJSON)
 async function addCalEnviroScreen() {
     var calEnviroScreen = await createGeoJson(
-        "../../geojson/CalEnviroScreen/CES4 Final Shapefile.json", "CalEnviroScreen"
+        "../../geojson/CalEnviroScreen/CES.json", "CalEnviroScreen"
     );
     calEnviroScreen.id = 'CalEnviroScreen';
     return calEnviroScreen;
