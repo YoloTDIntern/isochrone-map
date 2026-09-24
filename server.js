@@ -19,6 +19,11 @@ app.get("/tile-url", (req, res) => {
   });
 });
 
+// Configuration endpoint
+app.get("/api/config", (req, res) => {
+  res.json({ geoapifyKey: process.env.GEOAPIFY_API_KEY });
+});
+
 // GTFS-RT → GeoJSON endpoint
 app.get("/vehicles", async (req, res) => {
   try {
