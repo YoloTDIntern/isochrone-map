@@ -16,6 +16,7 @@ const COLORS = [
 ];
 
 // Global variables
+let GEOAPIFY_API_KEY = "";
 let map;
 let currentColorIndex = 0;
 let markerCounter = 0;
@@ -105,8 +106,23 @@ L.LayerGroup.include({
     },
 });
 
+// Runtime configurations
+async function loadServerConfig() {
+    try {
+        const response = await fetch('/api/config');
+        const data = await response.json();
+        GEOAPIFY_API_KEY = data.geoapifyKey;
+        console.log("Configuration keys injected successfully.");
+    } catch (error) {
+        console.error("Failed to load runtime configurations:", error);
+    }
+}
+
 // Initialize the application
 document.addEventListener("DOMContentLoaded", async function () {
+    // Wait for the API key to be fetched from the backend server
+    await loadServerConfig();
+    
     // Wait for all async layers to load before initializing map
     const [borders, yolobus, unitrans, calEnviroScreen, yoloPOIs, sacPOIs] =
         await Promise.all([
