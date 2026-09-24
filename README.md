@@ -1,7 +1,7 @@
 # Interactive Planning Webmap
 
 <p align="center">
-  <img src="./example_images/overview_example.png" alt="overview example" width="30%">
+  <img src="./example_images/overview_image.png" alt="overview image" width="60%">
 </p>
 
 
